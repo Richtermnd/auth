@@ -27,6 +27,17 @@ async def register(
 
 
 @router.get(
+    '/me',
+    response_model=schemas.User
+    )
+async def me(
+    current_user: dependencies.InjectionCurrentUser
+    ):
+    logging.info(current_user)
+    return current_user
+
+
+@router.get(
         '/{username}', 
         response_model=schemas.User
         )
@@ -46,3 +57,15 @@ async def user(
     ):
     return await service.get_users(session)
 
+
+@router.post(
+        '/auth',
+        response_model=schemas.Token
+        )
+async def token(
+        login_user: Annotated[schemas.LoginUser, Depends(dependencies.get_login_user)],
+        session: database.InjectionSession
+    ):
+    user = await service.authenticate_user(login_user, session)
+    token = await service.create_access_token(user)
+    return token

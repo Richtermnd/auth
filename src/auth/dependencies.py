@@ -1,7 +1,17 @@
-from fastapi import HTTPException, status
+from typing import Annotated
+import logging
 
-from . import schemas, service
+from fastapi import Depends, Form, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+
+from . import schemas, service, models
 from .. import database
+from ..config import settings
+
+logger = logging.getLogger(__name__)
+
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/auth")
 
 
 async def get_valid_register_user(
@@ -28,3 +38,35 @@ async def get_valid_register_user(
     return user
 
 
+async def get_login_user(
+        username: Annotated[str, Form()],
+        password: Annotated[str, Form()]
+    ) -> schemas.LoginUser:
+    return schemas.LoginUser(username=username, password=password)
+
+
+async def get_current_user(
+        token: Annotated[str, Depends(_oauth2_scheme)],
+        session: database.InjectionSession
+    ):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    logger.debug('Get current user.')
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username = payload.get('sub')
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = await service.get_user_by_username(username, session)
+    logger.debug(f'Current user {user}')
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+InjectionCurrentUser = Annotated[models.User, Depends(get_current_user)]

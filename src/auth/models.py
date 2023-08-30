@@ -3,6 +3,7 @@ from sqlalchemy import Boolean, Column, Integer, String
 from . import utils
 from .. import database
 
+
 class UserMixin:
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True)
@@ -11,7 +12,7 @@ class UserMixin:
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     
-    def check_password(self, raw_password) -> bool:
+    def check_password(self, raw_password: str) -> bool:
         return False
 
     @property
@@ -21,12 +22,15 @@ class UserMixin:
     @password.setter
     def password(self, value: str) -> None:
         raise AttributeError
+    
+    def __str__(self) -> str:
+        return self.username
 
 
 class User(UserMixin, database.Base):
     __tablename__ = 'users'
 
-    def check_password(self, raw_password) -> bool:
+    def check_password(self, raw_password: str) -> bool:
         return utils.verify_password(raw_password, self.hashed_password)
 
     @property
@@ -36,3 +40,11 @@ class User(UserMixin, database.Base):
     @password.setter
     def password(self, value: str) -> None:
         self.hashed_password =  utils.hash_password(value)
+    
+
+    def token_data(self) -> dict:
+        data = {
+            'id': self.id,
+            'sub': self.username
+        }
+        return data
