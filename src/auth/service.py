@@ -3,7 +3,7 @@ import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from jose import jwt, JWTError
+from jose import jwt
 
 from . import models, schemas
 from .. import database
@@ -17,6 +17,7 @@ async def create_user(
         item: schemas.CreateUser,
         session: database.AsyncSession
     ):
+    """Create user."""
     db_item = models.User(**item.model_dump(exclude={'repeat_password'}))
     session.add(db_item)
     await session.commit()
@@ -29,6 +30,7 @@ async def get_user_by_username(
         username: str,
         session: database.AsyncSession
     ):
+    """Get user by username."""
     logger.debug(f'Get user with username {username}')
     stmt = select(models.User).where(models.User.username == username)
     user = (await session.execute(stmt)).scalar()
@@ -38,6 +40,7 @@ async def get_user_by_username(
 async def get_users(
         session: database.AsyncSession
     ):
+    """Get all users."""
     stmt = select(models.User)
     users = (await session.execute(stmt)).scalars()
     return users
@@ -47,6 +50,7 @@ async def authenticate_user(
         login_user: schemas.LoginUser,
         session: database.AsyncSession
     ):
+    """Authenticate user."""
     user = await get_user_by_username(login_user.username, session)
     if user is None:
         raise HTTPException(
@@ -61,9 +65,10 @@ async def authenticate_user(
     return user
 
 
-async def create_access_token(
+async def create_token(
         user: models.User
-    ):
+    ) -> schemas.Token:
+    """Create token."""
     data = user.token_data()
     exp = datetime.utcnow() + timedelta(hours=1)
     data["exp"] = exp

@@ -5,6 +5,14 @@ from .. import database
 
 
 class UserMixin:
+    """Mixin for create User model
+
+    Use this mixin to create custom user model.
+
+    class MyUser(UserMixin, DeclarativeBase):
+        pass
+    """
+    __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True)
     hashed_password = Column(String)
@@ -28,8 +36,6 @@ class UserMixin:
 
 
 class User(UserMixin, database.Base):
-    __tablename__ = 'users'
-
     def check_password(self, raw_password: str) -> bool:
         return utils.verify_password(raw_password, self.hashed_password)
 

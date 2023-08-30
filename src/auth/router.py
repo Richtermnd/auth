@@ -22,6 +22,7 @@ async def register(
     user: Annotated[schemas.CreateUser, Depends(dependencies.get_valid_register_user)],
     session: database.InjectionSession
     ):
+    """Registration endpoint."""
     db_user = await service.create_user(user, session)
     return db_user
 
@@ -33,6 +34,7 @@ async def register(
 async def me(
     current_user: dependencies.InjectionCurrentUser
     ):
+    """Current user endpoint."""
     logging.info(current_user)
     return current_user
 
@@ -45,6 +47,7 @@ async def user(
         username: Annotated[str, Path()],
         session: database.InjectionSession
     ):
+    """Get user by username."""
     return await service.get_user_by_username(username, session)
 
 
@@ -55,17 +58,19 @@ async def user(
 async def user(
         session: database.InjectionSession
     ):
+    """Get all users."""
     return await service.get_users(session)
 
 
 @router.post(
         '/auth',
-        response_model=schemas.Token
+        response_model=schemas.Token,
         )
 async def token(
         login_user: Annotated[schemas.LoginUser, Depends(dependencies.get_login_user)],
         session: database.InjectionSession
     ):
+    """Generate JWT token."""
     user = await service.authenticate_user(login_user, session)
-    token = await service.create_access_token(user)
+    token = await service.create_token(user)
     return token
